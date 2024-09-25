@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Actualizar el sistema
+sudo apt update && sudo apt upgrade -y
+
+# Agregar el repositorio de OpenNebula
+echo "deb https://downloads.opennebula.io/repo/5.12/Ubuntu/20.04 stable opennebula" | sudo tee /etc/apt/sources.list.d/opennebula.list
+
+# Agregar la clave GPG
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 8E4E040F
+
+# Actualizar los repositorios
+sudo apt update
+
+# Instalar OpenNebula y sus dependencias
+sudo apt install -y opennebula opennebula-sunstone opennebula-gate opennebula-flow
+
+# Instalar servidor de base de datos
+sudo apt install -y mariadb-server
+
+# Configurar la base de datos MySQL para OpenNebula
+sudo mysql -e "CREATE DATABASE opennebula;"
+sudo mysql -e "CREATE USER 'oneadmin'@'localhost' IDENTIFIED BY 'password';"
+sudo mysql -e "GRANT ALL PRIVILEGES ON opennebula.* TO 'oneadmin'@'localhost';"
+sudo mysql -e "FLUSH PRIVILEGES;"
+
+# Configurar OpenNebula para utilizar MySQL
+sudo sed -i 's|DB = \[.*|DB = \[ BACKEND = "mysql", SERVER  = "localhost", PORT = 0, USER = "oneadmin", PASSWD = "password", DB_NAME = "opennebula" \]|g' /etc/one/oned.conf
+
+# Iniciar y habilitar los servicios de OpenNebula
+sudo systemctl enable opennebula
+sudo systemctl enable opennebula-sunstone
+sudo systemctl start opennebula
+sudo systemctl start opennebula-sunstone
+
+# Mostrar la dirección de acceso a Sunstone
+echo "Instalación completa. Puedes acceder a OpenNebula Sunstone en http://<tu-ip>:9869"
+echo "Usuario: oneadmin"
+echo "Contraseña: revisa el archivo /var/lib/one/.one/one_auth para la contraseña."
